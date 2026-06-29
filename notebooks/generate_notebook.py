@@ -1233,6 +1233,115 @@ print(f"Plotted {TARGET_BAND} band for {len(states_37)} states (1991-2100).")
 """))
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CELL 33 — Section 13 header
+# ─────────────────────────────────────────────────────────────────────────────
+cells.append(nbf.v4.new_markdown_cell("""\
+## Section 13: NCDIR Back-Projection for Problematic States (Experimental)
+
+For states where NCDIR 2012 young-adult populations are substantially lower than
+Census 2001 values, the Census 2001 → NCDIR 2012 bridge creates an artificial
+decline in 2001–2011, visible as a V-shape or kink in the 18–29 band plots.
+
+This section implements a temporary fix for those states: instead of the census
+bridge, the pre-2012 series is back-projected from NCDIR 2012 using the
+2012–2017 compound annual growth rate reversed. The result is a smooth series
+that is internally consistent with NCDIR's own demographic trajectory.
+
+**Note:** This is exploratory. Back-projection before NCDIR's base year (Census 2011)
+is extrapolation — it does not recover what actually happened before 2012.
+"""))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CELL 34 — back-projection code + plot
+# ─────────────────────────────────────────────────────────────────────────────
+cells.append(nbf.v4.new_code_cell("""\
+# ── 13.1  Problematic states (NCDIR 2012 young-adult bands < Census 2001) ─────
+PROBLEM_STATES = [
+    "Andaman & Nicobar", "Andhra Pradesh", "Goa", "Himachal Pradesh",
+    "Karnataka", "Kerala", "Lakshadweep", "Nagaland",
+    "Puduchery", "Punjab", "Tamil Nadu", "Telangana",
+]
+
+# ── 13.2  NCDIR back-projection: use 2012–2017 CAGR reversed ─────────────────
+ncdir_2012_bp = ncdir_raw[ncdir_raw["Year"] == 2012].set_index("State")
+ncdir_2017_bp = ncdir_raw[ncdir_raw["Year"] == 2017].set_index("State")
+
+def backproject_ncdir(state):
+    out = {}
+    for yr in range(1991, 2012):
+        out[yr] = {}
+        for b in BANDS:
+            v2012 = float(ncdir_2012_bp.loc[state, b])
+            v2017 = float(ncdir_2017_bp.loc[state, b])
+            cagr  = (v2017 / v2012) ** (1/5) - 1 if v2012 > 0 else 0.0
+            out[yr][b] = v2012 / ((1 + cagr) ** (2012 - yr))
+    return out
+
+# ── 13.3  Build full series for problem states using back-projected census ─────
+def build_full_series_bp(state):
+    back = backproject_ncdir(state)
+    series = {}
+    for yr in range(1991, 2012):
+        series[yr] = {b: back[yr][b] for b in BANDS}
+    for yr in NCDIR_YEARS:
+        series[yr] = {b: ncdir_states[state].loc[yr, b] * 1e6 for b in BANDS}
+    for yr in PROJ_YEARS:
+        series[yr] = {b: state_proj[state][yr][b] * 1e6 for b in BANDS}
+    rows = []
+    for yr in sorted(series.keys()):
+        row = {"State": state, "Year": yr}
+        row.update(series[yr])
+        row["Total"] = sum(series[yr][b] for b in BANDS)
+        row["Source"] = ("NCDIR-Backprojected" if yr <= 2011 else
+                         "NCDIR-Actual"         if yr <= 2036 else
+                         "WPP-Projection")
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+# ── 13.4  Compute 18-29 custom band for both approaches and plot ──────────────
+TARGET_BP = "18-29"
+
+fig, axes = plt.subplots(3, 4, figsize=(20, 13))
+axes_flat  = axes.flatten()
+
+for i, state in enumerate(PROBLEM_STATES):
+    ax = axes_flat[i]
+
+    # Current approach from df_custom_all
+    curr = df_custom_all[df_custom_all["State"] == state].sort_values("Year")
+    ax.plot(curr["Year"], curr[TARGET_BP] / 1e6,
+            "o", color="#aaaaaa", markersize=2, alpha=0.7,
+            label="Current (Census bridge)")
+
+    # Back-projected approach
+    df_bp       = build_full_series_bp(state)
+    df_bp_bands = compute_custom_bands(df_bp, USER_BANDS)
+    ax.plot(df_bp_bands["Year"], df_bp_bands[TARGET_BP] / 1e6,
+            "o", color="#C00000", markersize=2, alpha=0.85,
+            label="NCDIR back-projection")
+
+    ax.axvline(2012, color="#666666", lw=0.6, ls=":", alpha=0.7)
+    ax.axvline(2036, color="#666666", lw=0.6, ls=":", alpha=0.7)
+    ax.set_title(state, fontsize=9, fontweight="bold", pad=3)
+    ax.tick_params(labelsize=7)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.2f}M"))
+    ax.set_xlim(1988, 2103)
+    ax.spines[["top", "right"]].set_visible(False)
+    if i == 0:
+        ax.legend(fontsize=7, loc="upper left")
+
+fig.suptitle(
+    "18-29 Female Population: Current vs NCDIR Back-Projection\\n"
+    "Grey = current (Census 2001→NCDIR 2012 bridge)  |  Red = NCDIR back-projected from 2012",
+    fontsize=11, fontweight="bold", y=1.01,
+)
+plt.tight_layout()
+plt.show()
+print("Back-projection applied to", len(PROBLEM_STATES), "states.")
+print("Pre-2012 values derived from NCDIR 2012–2017 CAGR reversed to 1991.")
+"""))
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Assemble and write
 # ─────────────────────────────────────────────────────────────────────────────
 nb.cells = cells
