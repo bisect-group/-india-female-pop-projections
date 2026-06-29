@@ -9,7 +9,7 @@ and WPP-calibrated long-run projections.
 ## Quick Start
 
 ```bash
-git clone https://github.com/s-arvinth/-india-female-pop-projections.git
+git clone https://github.com/bisect-group/-india-female-pop-projections.git
 cd -india-female-pop-projections
 pip install -r requirements.txt
 jupyter notebook notebooks/India_Female_Population_1991_2100.ipynb
@@ -57,10 +57,21 @@ india-female-pop-projections/
 
 ### Segment 1: Census Anchor Years + Linear Interpolation (1991–2011)
 
-Census 1991, 2001, and 2011 provide decadal female population by 5-year age group.
-Between census years, each band is linearly interpolated year-by-year:
+The census period uses **two sub-segments** to eliminate the discontinuity that
+arises when switching from census to NCDIR data at 2011/2012:
 
-$$P(\text{band},\, t) = P(\text{band},\, t_0) + \frac{t - t_0}{t_1 - t_0}\bigl[P(\text{band},\, t_1) - P(\text{band},\, t_0)\bigr]$$
+**Sub-segment 1A — 1991 to 2001** (Census anchors at both ends):
+
+$$P(\text{band},\, t) = C(\text{band},\, 1991) + \frac{t - 1991}{10}\bigl[C(\text{band},\, 2001) - C(\text{band},\, 1991)\bigr]$$
+
+**Sub-segment 1B — 2001 to 2011** (Census 2001 → NCDIR 2012; Census 2011 not used):
+
+$$P(\text{band},\, t) = C(\text{band},\, 2001) + \frac{t - 2001}{11}\bigl[N(\text{band},\, 2012) - C(\text{band},\, 2001)\bigr]$$
+
+where $N(\text{band},\, 2012)$ is the NCDIR 2012 value. Because the 2012 endpoint of
+this line equals $N(\text{band},\, 2012)$ exactly, the annual step from 2011 to 2012
+is a uniform continuation of the same interpolation line — no source-change
+discontinuity at the segment boundary.
 
 Census bands map directly to the 16 NCDIR standard bands; only `75-79` and `80+`
 are combined into the NCDIR `75+` band.
