@@ -1173,6 +1173,66 @@ print(f"Load via:  pd.read_csv('{lambda_out}')")
 """))
 
 # ─────────────────────────────────────────────────────────────────────────────
+# CELL 31 — Section 12 header
+# ─────────────────────────────────────────────────────────────────────────────
+cells.append(nbf.v4.new_markdown_cell("""\
+## Section 12: 18–29 Age Band — All 37 States/UTs
+"""))
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CELL 32 — 18-29 all states plot
+# ─────────────────────────────────────────────────────────────────────────────
+cells.append(nbf.v4.new_code_cell("""\
+# ── 12.1  Compute 18-29 custom band for all states ───────────────────────────
+TARGET_BAND = "18-29"
+band_labels = [b[0] for b in USER_BANDS]
+if TARGET_BAND not in band_labels:
+    raise ValueError(
+        f"'{TARGET_BAND}' not found in USER_BANDS. "
+        f"Add ('18-29', 18, 29) to USER_BANDS in Section 10 and re-run."
+    )
+
+# df_custom_all was built in Section 10 — contains all states + India
+states_37 = [s for s in STATES]   # excludes India
+
+# ── 12.2  Plot: 37-state grid, red marker dots ────────────────────────────────
+ncols, nrows = 7, 6
+fig, axes = plt.subplots(nrows, ncols, figsize=(22, 18), sharey=False)
+axes_flat = axes.flatten()
+
+for i, state in enumerate(states_37):
+    ax = axes_flat[i]
+    df_s = df_custom_all[df_custom_all["State"] == state].sort_values("Year")
+    ax.plot(df_s["Year"], df_s[TARGET_BAND] / 1e6,
+            "o", color="#C00000", markersize=2.5, markeredgewidth=0, alpha=0.85)
+    ax.axvline(2012, color="#888888", lw=0.5, ls=":", alpha=0.6)
+    ax.axvline(2036, color="#888888", lw=0.5, ls=":", alpha=0.6)
+    ax.set_title(state, fontsize=7.5, fontweight="bold", pad=2)
+    ax.tick_params(labelsize=5.5)
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.1f}M"))
+    ax.set_xlim(1988, 2103)
+    ax.spines[["top", "right"]].set_visible(False)
+
+for j in range(len(states_37), len(axes_flat)):
+    axes_flat[j].set_visible(False)
+
+fig.suptitle(f"Female Population aged 18–29 (1991–2100) — All 37 States/UTs",
+             fontsize=13, fontweight="bold", y=1.005)
+
+handles = [
+    plt.Line2D([0], [0], marker="o", color="w", markerfacecolor="#C00000",
+               markersize=5, label="18-29 population"),
+    plt.Line2D([0], [0], color="#888888", lw=1, ls=":", label="2012 / 2036 handoffs"),
+]
+fig.legend(handles=handles, loc="lower right", fontsize=9,
+           bbox_to_anchor=(0.98, 0.01), frameon=True)
+
+plt.tight_layout()
+plt.show()
+print(f"Plotted {TARGET_BAND} band for {len(states_37)} states (1991-2100).")
+"""))
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Assemble and write
 # ─────────────────────────────────────────────────────────────────────────────
 nb.cells = cells
