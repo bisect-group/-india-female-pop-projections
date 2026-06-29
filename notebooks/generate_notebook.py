@@ -52,7 +52,7 @@ The time series is assembled from **three source segments**:
 
 | Period | Source | How used |
 |---|---|---|
-| 1991 · 2001 · 2011 | Census of India (Master Age-Sex file) | Anchor points; linear interpolation fills in-between years |
+| 1991 · 2001 | Census of India (Master Age-Sex file) | Anchor years for 1991–2001; Census 2001 and NCDIR 2012 jointly anchor the 2001–2011 segment to eliminate the source-change discontinuity |
 | 2012–2036 | State-level projections (NCDIR, Census 2011 methodology) | Actual demographic projections; used as-is |
 | 2037–2100 | WPP-scaled long-run projection | Age-band growth rates anchored to 2036 base, adjusted by TFR correction |
 
@@ -80,16 +80,28 @@ All projections use the 16 standard five-year age bands from the NCDIR file:
 
 ---
 
-### Segment 1 — Census Period (1991–2011): Linear Interpolation
+### Segment 1 — Census Period (1991–2011): Two-Sub-Segment Linear Interpolation
 
-For each state $s$ and age band $x$, let $C(s, x, y_k)$ be the census count at anchor
-year $y_k \in \{1991, 2001, 2011\}$. For any intermediate year $y \in [y_k, y_{k+1}]$:
+To eliminate the discontinuity from switching data sources at 2011/2012, the census
+period uses two sub-segments with different end anchors:
 
-$$P(s, x, y) = C(s, x, y_k) + \frac{y - y_k}{y_{k+1} - y_k}
-  \bigl[C(s, x, y_{k+1}) - C(s, x, y_k)\bigr]$$
+**Sub-segment 1A — 1991 to 2001** (Census anchors at both ends):
 
-Census uses the same standard 5-year bands as NCDIR, so mapping is direct.
-The bands `75-79` and `80+` in the Census file are combined into `75+`.
+$$P(s, x, y) = C(s, x, 1991) + \frac{y - 1991}{10}\,\bigl[C(s, x, 2001) - C(s, x, 1991)\bigr]
+\quad y \in [1991, 2001]$$
+
+**Sub-segment 1B — 2001 to 2011** (Census 2001 → NCDIR 2012, Census 2011 not used):
+
+$$P(s, x, y) = C(s, x, 2001) + \frac{y - 2001}{11}\,\bigl[N(s, x, 2012) - C(s, x, 2001)\bigr]
+\quad y \in [2001, 2011]$$
+
+where $N(s, x, 2012)$ is the NCDIR value at 2012. Because the 2012 endpoint of this
+line equals $N(s, x, 2012)$ exactly, the step from 2011 to 2012 is simply
+$\tfrac{1}{11}[N - C_{2001}]$ — the same uniform increment as every other year in
+the segment, so no discontinuity exists at the source boundary.
+
+Census 2011 is not used as an anchor. The bands `75-79` and `80+` in the Census file
+are combined into `75+`.
 
 ---
 
@@ -621,44 +633,56 @@ print(f"State projections built for {len(state_proj)} states (2012-2100).")
 cells.append(nbf.v4.new_markdown_cell("""\
 ## Section 6: Census Period (1991–2011) — Linear Interpolation
 
-For each state and age band, linearly interpolate between the three census anchor
-years (1991, 2001, 2011) to produce annual values.
+Two sub-segments eliminate the source-change discontinuity at 2011/2012:
+- **1991–2001:** Census 1991 → Census 2001 (both hard census anchors)
+- **2001–2011:** Census 2001 → NCDIR 2012 (Census 2011 is *not* used as an anchor)
+
+Anchoring the 2001–2011 segment to NCDIR 2012 ensures the 2011→2012 step is a
+uniform continuation of the interpolation line, not a source-change jump.
 """))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CELL 17 — Census interpolation code
 # ─────────────────────────────────────────────────────────────────────────────
 cells.append(nbf.v4.new_code_cell("""\
-# ── 6.1  Linear interpolation between census anchor years ────────────────────
-def interp_census(bands_dict):
-    anchors = sorted(bands_dict.keys())
+# ── 6.1  NCDIR 2012 in absolute persons (same unit as census_bands) ───────────
+ncdir_2012_abs = ncdir_raw[ncdir_raw["Year"] == 2012].set_index("State")
+ncdir_2012_india_abs = {b: float(ncdir_raw.groupby("Year")[BANDS].sum().loc[2012, b])
+                        for b in BANDS}
+
+def interp_two_anchors(b_start, b_end, y_start, y_end):
     out = {}
-    for k in range(len(anchors) - 1):
-        y0, y1 = anchors[k], anchors[k+1]
-        b0, b1 = bands_dict[y0], bands_dict[y1]
-        for yr in range(y0, y1 + 1):
-            t = (yr - y0) / (y1 - y0) if y1 > y0 else 0.0
-            out[yr] = {b: b0[b] + t * (b1[b] - b0[b]) for b in BANDS}
+    span = y_end - y_start
+    for yr in range(y_start, y_end):
+        t = (yr - y_start) / span
+        out[yr] = {b: b_start[b] + t * (b_end[b] - b_start[b]) for b in BANDS}
     return out
 
 census_annual = {}
 for state in census_bands:
     if state == "India":
         continue
-    anchors = {yr: census_bands[state][yr] for yr in CENSUS_YEARS
-               if yr in census_bands[state]}
-    if len(anchors) >= 2:
-        census_annual[state] = interp_census(anchors)
+    if 1991 not in census_bands[state] or 2001 not in census_bands[state]:
+        print(f"  WARNING: {state} missing census anchors, skipping")
+        continue
+    # Sub-segment 1A: Census 1991 → Census 2001
+    seg1 = interp_two_anchors(census_bands[state][1991], census_bands[state][2001], 1991, 2001)
+    # Sub-segment 1B: Census 2001 → NCDIR 2012 (takes years 2001-2011)
+    if state in ncdir_2012_abs.index:
+        ncdir_end = {b: float(ncdir_2012_abs.loc[state, b]) for b in BANDS}
     else:
-        print(f"  WARNING: {state} has fewer than 2 census anchors")
+        print(f"  WARNING: {state} not in NCDIR 2012, falling back to Census 2011")
+        ncdir_end = census_bands[state].get(2011, census_bands[state][2001])
+    seg2 = interp_two_anchors(census_bands[state][2001], ncdir_end, 2001, 2012)
+    census_annual[state] = {**seg1, **seg2}
 
-census_annual["India"] = interp_census(
-    {yr: census_bands["India"][yr] for yr in CENSUS_YEARS
-     if yr in census_bands["India"]}
-)
+# India
+seg1_india = interp_two_anchors(census_bands["India"][1991], census_bands["India"][2001], 1991, 2001)
+seg2_india = interp_two_anchors(census_bands["India"][2001], ncdir_2012_india_abs, 2001, 2012)
+census_annual["India"] = {**seg1_india, **seg2_india}
 
 print(f"Census annual interpolation done for {len(census_annual)-1} states + India.")
-print(f"Years covered: 1991–2011")
+print(f"Years covered: 1991–2011  (2001-2011 segment anchored to NCDIR 2012)")
 """))
 
 # ─────────────────────────────────────────────────────────────────────────────
