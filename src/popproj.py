@@ -204,10 +204,13 @@ def style_pop_axis(ax, title=None, ylabel="Female pop. [millions]", ymax=None):
     return ax
 
 
+FIG_FORMATS = ("pdf", "svg", "png")      # vector PDF and SVG (SVG renders on GitHub), plus PNG
+
+
 def save(fig, name):
-    """Save PDF + PNG into FIG_DIR and keep the figure open for display."""
+    """Save the figure into FIG_DIR in every format in FIG_FORMATS and keep it open for display."""
     os.makedirs(FIG_DIR, exist_ok=True)
-    sp.save(fig, name, outdir=FIG_DIR, formats=("pdf", "png"), close=False, verbose=False)
+    sp.save(fig, name, outdir=FIG_DIR, formats=FIG_FORMATS, close=False, verbose=False)
 
 
 def growth_pct(df):

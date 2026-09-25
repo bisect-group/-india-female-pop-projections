@@ -1,8 +1,8 @@
 # Female population of India and its states by age, 1950–2100
 
-Annual **female population for India and all 37 state/UT series × 16 five-year age bands (00–04 … 70–74, 75+) × 1950–2100**,
-built by reconciling the ICMR-NCDIR state projections, the Census of India and UN World Population Prospects — plus a set of
-**age-structured population ODE models** fitted to it.
+Annual **female population for India and 37 states/UTs × 16 five-year age bands (00–04 … 70–74, 75+) × 1950–2100**,
+combining the Census of India, UN World Population Prospects 2024 and the ICMR-NCDIR state population projections —
+together with a set of **age-structured population ODE models** fitted to these series.
 
 Use it in two ways:
 
@@ -10,55 +10,45 @@ Use it in two ways:
 - **Use or extend the code** — rebuild the data, change the method, or fit the population models with the notebooks in
   [`notebooks/`](notebooks/) and the Python modules in [`src/`](src/).
 
-<p align="center"><img src="docs/figures/tracks_dashboard.png" width="900"></p>
+<p align="center"><img src="docs/figures/tracks_dashboard.svg" width="900"></p>
 
-**Contents:** [Why this dataset](#why-this-dataset) · [Three tracks](#three-versions-tracks-of-the-data) · [Data files](#the-data-files) · [Population models](#population-models) · [Quick start](#quick-start) · [Repository layout](#repository-layout) · [Methods](#methods) · [Limitations](#limitations) · [Licence](#licence)
+**Contents:** [Data sources](#data-sources-and-approach) · [Three tracks](#three-versions-tracks-of-the-data) ·
+[Data files](#the-data-files) · [Population models](#population-models) · [Quick start](#quick-start) ·
+[Repository layout](#repository-layout) · [Methods](#methods) · [Limitations](#limitations) · [Licence](#licence)
 
 ---
 
-## Why this dataset
+## Data sources and approach
 
-No public source gives consistent, annual, state-level female population by age over a long horizon:
+The series draw on four sources, each covering a different part of what is needed:
 
-| Source | Coverage | Limitation |
+| Source | Coverage | Used for |
 |---|---|---|
-| ICMR-NCDIR state population projections | 37 states/UTs, 2012–2036, 16 bands | 25 years only; each state's **age split is fixed** for the whole period |
-| UN World Population Prospects 2024 (WPP) | India, single ages, 1950–2100 | India only; levels differ from the Census |
-| Census of India | All states, 1991 / 2001 / 2011 | Three years; state boundaries have changed since |
-| SRS Statistical Report 2022 | India + 22 bigger states | One year (used here for validation only) |
+| Census of India 1991, 2001, 2011 | All states, 16 bands | Age structure at the Census years (anchors) |
+| UN World Population Prospects 2024 (WPP) | India, single ages, 1950–2100 | Year-to-year dynamics and the 1950–2100 horizon |
+| SRS Statistical Report 2022 | India + 22 bigger states, age distribution | Independent check of the age distributions |
+| ICMR-NCDIR state population projections | 37 states/UTs, 2012–2036, 16 bands | State totals for 2012–2036 |
 
-The ICMR-NCDIR file is written as *state total × a fixed age split*: its totals follow a real projection, but its age
-structure does not change over 25 years (30 series use a percentage table rounded to 0.1 %, 7 use their own Census 2011 split).
-Joining it to the Census produces a large jump in 2011→2012 (e.g. −18 % in 00–04, +71 % in 75+).
-
-<p align="center"><img src="docs/figures/transition_2011_2012.png" width="900"></p>
-
-<p align="center"><img src="docs/figures/icmr_ncdir_fixed_age_shares.png" width="820"></p>
+Bringing these together involves choices — how to carry state totals and age distributions across years, and how to extend
+series beyond the years each source covers. The repository provides three constructions, documented side by side, so that
+users can choose the one that suits their application.
 
 ## Three versions ("tracks") of the data
 
-| Track | Totals | Age split | Use it when |
+| Track | Totals | Age distribution | Suited to |
 |---|---|---|---|
-| **A** | ICMR-NCDIR, extended to 1950–2100 with WPP growth | ICMR-NCDIR's fixed split | ICMR-NCDIR's own numbers must be reproduced exactly |
-| **B** | Census + WPP | Census-anchored, changes with time | Agreement with the Census and demographic consistency matter most (e.g. fitting population-dynamics models) |
-| **C** | ICMR-NCDIR, extended as in A | Track B's split | Results must agree with ICMR-NCDIR's official totals **and** need a realistic age structure |
+| **A** | ICMR-NCDIR, extended to 1950–2100 with WPP growth | As in ICMR-NCDIR (constant over 2012–2036) | Work that should reproduce the ICMR-NCDIR projections exactly |
+| **B** | Census + WPP | Census-anchored, changing over time | Work that should follow the Census, e.g. fitting population-dynamics models |
+| **C** | ICMR-NCDIR, extended as in A | Track B's age distribution | Work that should agree with ICMR-NCDIR totals and use a Census-anchored age structure |
 
-- **Track A** has four variants: `A1` (extend the total only), `A2` (extend each band), and `A1-blend` / `A2-blend`
-  (growth fades smoothly into WPP's at 2012 and 2036).
-- **Track B** has three national variants: `B-hold`, `B-taper`, `B-smooth` (how the Census/WPP correction behaves outside
-  1991–2011), and two state rules (`hold`, `drift-damped`).
+- **Track A** variants: `A1` (extend the total), `A2` (extend each band), `A1-blend` / `A2-blend` (growth blended smoothly
+  into WPP's at 2012 and 2036).
+- **Track B** variants: `B-hold`, `B-taper`, `B-smooth` (how the Census/WPP correction behaves outside 1991–2011), each with two
+  state rules (`hold`, `drift-damped`).
 - **Defaults** used in the CSV files and the model notebooks: Track A `A1`, Track B `B-taper` (states: `B-taper` with the `hold` rule),
-  Track C `B-taper` split × `A1-blend` totals.
+  Track C `B-taper` age distribution × `A1-blend` totals.
 
-<p align="center"><img src="docs/figures/tracks_scorecard.png" width="720"></p>
-
-| Criterion (India / states) | A | B | C |
-|---|---|---|---|
-| Totals vs ICMR-NCDIR 2012–2036 | exact | up to 68 % off (small units) | exact |
-| Age split vs Census 1991 / 2001 / 2011 (median % misplaced) | 13.8 | exact | exact |
-| Age split vs SRS 2022 — independent (India / states median, % misplaced) | 7.0 / 7.8 | 5.4 / 5.3 | 5.3 / 5.3 |
-| Cohorts that grow with age (% of state-band cells, 2012→2022) | 47 | 38 | 42 |
-| Age structure evolves over time | no | yes | yes |
+Notebook 01 compares the tracks against the Census, against SRS 2022 and on demographic consistency.
 
 ## The data files
 
@@ -84,9 +74,8 @@ df = pd.read_csv("outputs/csv/states_female_population_by_age_1950_2100_trackC.c
 kerala_2030 = df.query("unit == 'Kerala' and year == 2030")
 ```
 
-**States/UTs.** The 37 series follow ICMR-NCDIR's units (Andhra Pradesh and Telangana separate; Jammu & Kashmir and Ladakh
-separate; Dadra & Nagar Haveli and Daman & Diu separate). **Today's boundaries are applied to all years**, including the past.
-India = sum of the 37 series.
+**States/UTs.** 37 series (Andhra Pradesh and Telangana separate; Jammu & Kashmir and Ladakh separate; Dadra & Nagar Haveli and
+Daman & Diu separate). **Today's boundaries are applied to all years**, including the past. India = sum of the 37 series.
 
 ## Population models
 
@@ -111,15 +100,16 @@ Mean error across bands (MAPE, India, fitted 1950–2100):
 | B (B-taper) | 10.5 % | 22.2 % | 20.3 % |
 | C | 9.6 % | 21.1 % | 19.5 % |
 
-Fixing $k_i = 1/5$ roughly doubles band error; on Tracks B and C the 75+ band is the hardest to fit because constant mortality
-cannot follow its large growth. Track A fits best largely because a fixed age split is easy for an aging chain to mimic. See each
-notebook's results section for details.
+Fixing $k_i = 1/5$ roughly doubles the band error; on Tracks B and C the 75+ band is the hardest to fit with constant mortality.
+Each notebook's results section discusses the fits in detail.
 
-<p align="center"><img src="docs/figures/model_errors_trackB.png" width="880"></p>
+**Example — Track A, E4** (time-varying Λ(t) = p·Λ*(t), one calibrated μ, calibrated k; dots = data, line = model):
 
-Example: experiment E5 on Track B (all 16 bands; dots = data, line = model).
+<p align="center"><img src="docs/figures/model_fit_trackA_E4.svg" width="820"></p>
 
-<p align="center"><img src="docs/figures/model_fit_trackB_E5.png" width="820"></p>
+**Example — Track B, E5** (time-varying Λ(t), calibrated μ per band, calibrated k):
+
+<p align="center"><img src="docs/figures/model_fit_trackB_E5.svg" width="820"></p>
 
 ## Quick start
 
@@ -139,6 +129,7 @@ jupyter lab notebooks/
 
 Notebooks 02–04 read the committed files in `outputs/`, so they run without notebook 01. All settings (track variant, state,
 fit years, recruitment driver) are in the first code cell of each notebook; set `UNIT = "Kerala"` (or any state) to fit a state.
+Figures are saved as PDF, SVG and PNG in `figures/` (not committed).
 
 The modules can also be used directly:
 
@@ -154,18 +145,16 @@ print(res["metrics"]["mape"], res["k"].values)
 
 ```
 ├── data/raw/            input data (see data/README.md for sources)
-│   ├── icmr_ncdir/      ICMR-NCDIR state female projections 2012–2036
-│   ├── wpp/             WPP 2024 India female population by single age 1950–2100
 │   ├── census/          Census of India 1991, 2001, 2011 age-sex tables
+│   ├── wpp/             WPP 2024 India female population by single age 1950–2100
 │   ├── srs/             SRS Statistical Report 2022 (extracted tables; validation only)
-│   └── life_table/      female death probabilities by age group (for fixed mortality)
+│   ├── life_table/      female death probabilities by age group (for fixed mortality)
+│   └── icmr_ncdir/      ICMR-NCDIR state female projections 2012–2036
 ├── notebooks/           01 data construction, 02–04 population models
 ├── src/                 popproj.py (data), popmodel.py (models), plotstyle.py (figure style)
 ├── outputs/             pre-built data products and model results
 └── docs/                METHODS.md and README figures
 ```
-
-Figures are written to `figures/` when notebooks run (not committed).
 
 ## Methods
 
@@ -173,11 +162,11 @@ Full description, equations and choices: [`docs/METHODS.md`](docs/METHODS.md).
 
 ## Limitations
 
-- After 2036 (Tracks A, C) and throughout (Track B), states follow India's WPP shape; there is no state-level WPP.
-- Census child under-count and age heaping are carried into Tracks B and C at the anchor years.
-- Tracks B and C show growth jumps of up to about 2.5 percentage points per year at 1991 and 2011, where the Census/WPP correction
-  stops changing abruptly.
-- ICMR-NCDIR's totals are used as published, including very fast projected growth for some small units.
+- After 2036 (Tracks A, C) and throughout (Track B), states follow India's WPP shape; there is no state-level WPP series.
+- Census age-reporting patterns at the anchor years (e.g. under-count of young children, age heaping) carry into Tracks B and C.
+- Tracks B and C show growth changes of up to about 2.5 percentage points per year at 1991 and 2011, where the Census/WPP
+  correction moves from interpolation to extrapolation.
+- State totals for 2012–2036 in Tracks A and C are used as provided by ICMR-NCDIR.
 - Female population only.
 
 ## Previous version
@@ -187,9 +176,8 @@ The earlier pipeline (Census-interpolated series and custom age bands) is preser
 
 ## Data sources and credits
 
-See [`data/README.md`](data/README.md). Input data remain the property of their providers (ICMR-NCDIR, Office of the
-Registrar General & Census Commissioner, India, and the United Nations Population Division); please cite them when using
-the data products.
+See [`data/README.md`](data/README.md). Input data remain the property of their providers (Office of the Registrar General &
+Census Commissioner, India; United Nations Population Division; ICMR-NCDIR); please cite them when using the data products.
 
 ## Licence
 

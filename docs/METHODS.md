@@ -8,11 +8,11 @@ $t_a \in \{1991, 2001, 2011\}$. Code: `src/popproj.py`, `src/popmodel.py`, `note
 
 | Input | File | Notes |
 |---|---|---|
-| ICMR-NCDIR state female projections | `data/raw/icmr_ncdir/` | 37 series × 2012–2036 × 16 bands |
 | WPP 2024 India female population | `data/raw/wpp/` | single ages 0–100+, 1950–2100 (thousands), summed to bands |
 | Census of India age-sex tables | `data/raw/census/` | 1991 (excluding J&K), 2001, 2011 |
 | SRS Statistical Report 2022 | `data/raw/srs/` | female % age distribution, India + 22 bigger states (validation only) |
 | Life table | `data/raw/life_table/` | 22 age groups, average death probability $q$ 1950–2100 |
+| ICMR-NCDIR state female projections | `data/raw/icmr_ncdir/` | 37 series × 2012–2036 × 16 bands |
 
 ## 2. Structure of the ICMR-NCDIR projections
 
