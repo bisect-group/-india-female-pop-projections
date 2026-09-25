@@ -115,8 +115,8 @@ notebook's results section for details.
 ## Quick start
 
 ```bash
-git clone https://github.com/bisect-group/-india-female-pop-projections.git
-cd -india-female-pop-projections
+git clone https://github.com/bisect-group/india-female-population-projections.git
+cd india-female-population-projections
 pip install -r requirements.txt
 jupyter lab notebooks/
 ```
@@ -174,12 +174,18 @@ Full description, equations and choices: [`docs/METHODS.md`](docs/METHODS.md).
 ## Previous version
 
 The earlier pipeline (Census-interpolated series and custom age bands) is preserved at the tag
-[`v1-legacy`](https://github.com/bisect-group/-india-female-pop-projections/tree/v1-legacy).
+[`v1-legacy`](https://github.com/bisect-group/india-female-population-projections/tree/v1-legacy).
 
 ## Data sources and credits
 
 See [`data/README.md`](data/README.md). Input data remain the property of their providers (ICMR-NCDIR, Office of the
 Registrar General & Census Commissioner, India, and the United Nations Population Division); please cite them when using
 the data products.
+
+## Licence
+
+- Code (`src/`, `notebooks/`): [MIT](LICENSE).
+- Derived data products (`outputs/`): [CC BY 4.0](LICENSE-DATA.md) — free to share and adapt with attribution.
+- Input data (`data/raw/`): terms of their providers.
 
 Maintained by the BISECT Lab. Issues and questions: please open a GitHub issue.
