@@ -1,22 +1,21 @@
 # Female population of India and its states by age, 1950–2100
 
-Annual **female population for India and 37 states/UTs, 1950–2100**, in 16 five-year age bands (00–04 … 70–74, 75+),
-**by single year of age (0 … 99, 100+), and in any custom age grouping** — combining the Census of India, UN World Population
-Prospects 2024 and the ICMR-NCDIR state population projections — together with a set of **age-structured population ODE models**
-fitted to these series.
+Annual **female population for India and 37 states/UTs × 16 five-year age bands (00–04 … 70–74, 75+) × 1950–2100**,
+combining the Census of India, UN World Population Prospects 2024 and the ICMR-NCDIR state population projections —
+together with a set of **age-structured population ODE models** fitted to these series.
 
 Use it in two ways:
 
 - **Use the data** — pre-built CSV / Excel / Parquet files in [`outputs/`](outputs/). No code needs to run.
-- **Use or extend the code** — rebuild the data, choose your own age bands, or fit the population models with the notebooks in
+- **Use or extend the code** — rebuild the data, change the method, or fit the population models with the notebooks in
   [`notebooks/`](notebooks/) and the Python modules in [`src/`](src/).
 
 <p align="center"><img src="docs/figures/tracks_dashboard.svg" width="900"></p>
 
 **Contents:** [Data sources](#data-sources-and-approach) · [Three tracks](#three-versions-tracks-of-the-data) ·
-[Single ages and custom bands](#single-ages-and-custom-age-bands) · [Data files](#the-data-files) ·
-[Population models](#population-models) · [Quick start](#quick-start) · [Repository layout](#repository-layout) ·
-[Methods](#methods) · [Limitations](#limitations) · [Licence](#licence)
+[Single ages and custom bands](#single-ages-and-custom-age-bands) · [Assumptions and limitations](#assumptions-and-limitations) ·
+[Population models](#population-models) · [Outputs](#outputs) · [Quick start](#quick-start) ·
+[Repository layout](#repository-layout) · [Methods](#methods) · [Licence](#licence)
 
 ---
 
@@ -27,14 +26,16 @@ The series draw on four sources, each covering a different part of what is neede
 | Source | Coverage | Used for |
 |---|---|---|
 | Census of India 1991, 2001, 2011 | All states, 16 bands | Age structure at the Census years (anchors) |
-| UN World Population Prospects 2024 (WPP) | India, single ages, 1950–2100 | Year-to-year dynamics, the 1950–2100 horizon, and the shape within age bands |
+| UN World Population Prospects 2024 (WPP) | India, single ages, 1950–2100 | Year-to-year dynamics and the 1950–2100 horizon |
 | SRS Statistical Report 2022 | India + 22 bigger states, age distribution | Independent check of the age distributions |
 | ICMR-NCDIR state population projections | 37 states/UTs, 2012–2036, 16 bands | State totals for 2012–2036 |
 
-Bringing these together involves choices — how to carry state totals and age distributions across years, how to extend series
-beyond the years each source covers, and how to spread each five-year band over single ages. The repository provides three
-constructions of the five-year series and four ways of splitting them into single ages, documented side by side, so that users
-can choose what suits their application.
+Bringing these together involves choices — how to carry state totals and age distributions across years, and how to extend
+series beyond the years each source covers. The repository provides three constructions, documented side by side, so that
+users can choose the one that suits their application.
+
+**States/UTs.** 37 series (Andhra Pradesh and Telangana separate; Jammu & Kashmir and Ladakh separate; Dadra & Nagar Haveli and
+Daman & Diu separate). **Today's boundaries are applied to all years**, including the past. India = sum of the 37 series.
 
 ## Three versions ("tracks") of the data
 
@@ -55,9 +56,9 @@ Notebook 01 compares the tracks against the Census, against SRS 2022 and on demo
 
 ## Single ages and custom age bands
 
-Every track is also available by **single year of age** (0 … 99, 100+), so any age grouping can be formed — for example a target
-group for an intervention (0–8, 9–14, 15–19, then five-year bands), broad groups such as 0–17 / 18–29 / 30–65 / 66+, or single years.
-Four methods spread each five-year band over its ages; all four reproduce every band total exactly:
+The five-year bands of every track can be spread over **single years of age** (0 … 99, 100+), so that any age grouping can be
+formed — for example a target group for an intervention (0–8, 9–14, 15–19, then five-year bands), broad groups such as
+0–17 / 18–29 / 30–65 / 66+, or single years. Four methods are provided; all four reproduce every five-year band total exactly:
 
 | Method | Ages within a band | Uses WPP single ages | Smooth across band edges |
 |---|---|---|---|
@@ -80,37 +81,34 @@ single = ps.split(bands, "wpp_smooth", ps.wpp_single())                # year x 
 custom = ps.regroup(single, [("0-8", 0, 8), ("9-14", 9, 14), ("15-19", 15, 19), ("20+", 20, 100)])
 ```
 
-## The data files
+## Assumptions and limitations
 
-All populations are **absolute numbers of females**. Mid-year values.
+**Five-year series**
 
-| File | Contents |
-|---|---|
-| `outputs/csv/india_female_population_by_age_1950_2100.csv` | India, all tracks and variants, five-year bands, long format |
-| `outputs/csv/states_female_population_by_age_1950_2100_track{A,B,C}.csv` | All 37 states/UTs, five-year bands, default variant of each track: A = `A1`, B = `B-taper_hold`, C = `B-taper_hold_A1-blend` |
-| `outputs/trackA/trackA_india.xlsx` | India, one sheet per variant (A1, A1-blend, A2, A2-blend); wide (year × band + Total) |
-| `outputs/trackA/trackA_states_<variant>.parquet` | States, long format, per variant |
-| `outputs/trackB/trackB_india.xlsx` | India, one sheet per variant (B-hold, B-taper, B-smooth) |
-| `outputs/trackB/trackB_states_<national>_<rule>.parquet` | States, long format, for every national variant × state rule |
-| `outputs/trackB/census_anchors_harmonised.csv` | Census 1991/2001/2011 harmonised to today's 37 units |
-| `outputs/trackC/trackC_india_<tag>.xlsx`, `trackC_states_<tag>.parquet` | Track C, India and states |
-| `outputs/single_age/<track tag>/india_single_ages.xlsx` | India by single age, one sheet per method (year × age 0 … 99, 100+) |
-| `outputs/single_age/<track tag>/states_single_ages_<method>.parquet` | All states by single age, long format (`state, year, age, females`) |
-| `outputs/single_age/<track tag>/india_custom_bands_<method>.csv` | India in the example groupings S0–S3 (`scheme, year, band, females`) |
-| `outputs/model/<track tag>/` | Population-model results: fit summary, errors by band, parameters (JSON), simulations |
+- Female population only; mid-year values.
+- Today's state/UT boundaries are applied to all years, including the past.
+- State totals for 2012–2036 in Tracks A and C are used as provided by ICMR-NCDIR.
+- After 2036 (Tracks A, C) and throughout (Track B), states follow India's WPP shape; there is no state-level WPP series.
+- Census age-reporting patterns at the anchor years (e.g. under-count of young children, age heaping) carry into Tracks B and C.
+- Tracks B and C show growth changes of up to about 2.5 percentage points per year at 1991 and 2011, where the Census/WPP
+  correction moves from interpolation to extrapolation.
 
-Five-year CSV columns: `track, variant, unit, year, band, females`. Methods: `uniform`, `wpp`, `cumspline`, `wpp_smooth`.
-Example groupings: S0 the 16 five-year bands; S1 0–8, 9–14, 15–19, then five-year bands; S2 0–17, 18–29, 30–65, 66+;
-S3 0–8, 9–14, 15–26, 27–45, 46–65, 66+.
+**Single ages and custom bands**
 
-```python
-import pandas as pd
-df = pd.read_csv("outputs/csv/states_female_population_by_age_1950_2100_trackC.csv")
-kerala_2030 = df.query("unit == 'Kerala' and year == 2030")
-```
+- No state-level single-age data are used: within each five-year band, states follow India's WPP single-age pattern (M2, M4)
+  or a smooth curve (M3).
+- Single ages from M2 and M4 carry WPP India's single-year cohort features (for example around 1959–60 and the mid-2020s);
+  these can appear in custom bands that cut across five-year bands.
+- Custom bands inherit all assumptions of the track they are built from.
 
-**States/UTs.** 37 series (Andhra Pradesh and Telangana separate; Jammu & Kashmir and Ladakh separate; Dadra & Nagar Haveli and
-Daman & Diu separate). **Today's boundaries are applied to all years**, including the past. India = sum of the 37 series.
+**Population models**
+
+- Each band is one compartment; women move to the next band at rate $k_i$ and leave through mortality at rate $\mu_i$, both
+  constant over time. Migration is not modelled separately.
+- Recruitment into 00–04 is either constant or proportional to a driver built from the same track (by default, women aged
+  20–29 ten years ahead).
+- Parameters are fitted to the whole 1950–2100 series of one track, so a fit describes that track rather than giving an
+  independent projection.
 
 ## Population models
 
@@ -146,6 +144,56 @@ Each notebook's results section discusses the fits in detail.
 
 <p align="center"><img src="docs/figures/model_fit_trackB_E5.svg" width="820"></p>
 
+```python
+import sys; sys.path.insert(0, "src")
+import popmodel as pm
+data = pm.load_track("C", unit="Tamil Nadu")          # year x 16 bands
+res = pm.fit("E12", data, pm.life_table_mu(), pm.lambda_driver(data))
+print(res["metrics"]["mape"], res["k"].values)
+```
+
+## Outputs
+
+All populations are **absolute numbers of females**, mid-year values.
+
+**Five-year bands**
+
+| File | Contents |
+|---|---|
+| `outputs/csv/india_female_population_by_age_1950_2100.csv` | India, all tracks and variants, long format |
+| `outputs/csv/states_female_population_by_age_1950_2100_track{A,B,C}.csv` | All 37 states/UTs, long format, default variant of each track: A = `A1`, B = `B-taper_hold`, C = `B-taper_hold_A1-blend` |
+| `outputs/trackA/trackA_india.xlsx` | India, one sheet per variant (A1, A1-blend, A2, A2-blend); wide (year × band + Total) |
+| `outputs/trackA/trackA_states_<variant>.parquet` | States, long format, per variant |
+| `outputs/trackB/trackB_india.xlsx` | India, one sheet per variant (B-hold, B-taper, B-smooth) |
+| `outputs/trackB/trackB_states_<national>_<rule>.parquet` | States, long format, for every national variant × state rule |
+| `outputs/trackB/census_anchors_harmonised.csv` | Census 1991/2001/2011 harmonised to today's 37 units |
+| `outputs/trackC/trackC_india_<tag>.xlsx`, `trackC_states_<tag>.parquet` | Track C, India and states |
+
+CSV columns: `track, variant, unit, year, band, females`.
+
+```python
+import pandas as pd
+df = pd.read_csv("outputs/csv/states_female_population_by_age_1950_2100_trackC.csv")
+kerala_2030 = df.query("unit == 'Kerala' and year == 2030")
+```
+
+**Single ages and custom bands** — one folder per track: `trackA_A1`, `trackB_B-taper`, `trackC_B-taper_hold_A1-blend`
+
+| File | Contents |
+|---|---|
+| `outputs/single_age/<track tag>/india_single_ages.xlsx` | India by single age, one sheet per method (year × age 0 … 99, 100+) |
+| `outputs/single_age/<track tag>/states_single_ages_<method>.parquet` | All states by single age, long format (`state, year, age, females`) |
+| `outputs/single_age/<track tag>/india_custom_bands_<method>.csv` | India in the example groupings S0–S3 (`scheme, year, band, females`) |
+
+Methods: `uniform`, `wpp`, `cumspline`, `wpp_smooth`. Example groupings: S0 the 16 five-year bands; S1 0–8, 9–14, 15–19, then
+five-year bands; S2 0–17, 18–29, 30–65, 66+; S3 0–8, 9–14, 15–26, 27–45, 46–65, 66+.
+
+**Population models**
+
+| File | Contents |
+|---|---|
+| `outputs/model/<track tag>/` | Fit summary, errors by band, parameters (JSON) and simulations for the 12 experiments |
+
 ## Quick start
 
 ```bash
@@ -166,18 +214,8 @@ jupyter lab notebooks/
 | `07_single_age_trackC.ipynb` | Same for Track C | ~1 min |
 
 Notebooks 02–07 read the committed files in `outputs/`, so they run without notebook 01. All settings (track variant, state,
-fit years, recruitment driver) are in the first code cell of each notebook; set `UNIT = "Kerala"` (or any state) to fit a state.
+fit years, recruitment driver) are in the first code cell of each notebook; set `UNIT = "Kerala"` (or any state) to use a state.
 Figures are saved as PDF, SVG and PNG in `figures/` (not committed).
-
-The modules can also be used directly:
-
-```python
-import sys; sys.path.insert(0, "src")
-import popmodel as pm
-data = pm.load_track("C", unit="Tamil Nadu")          # year x 16 bands
-res = pm.fit("E12", data, pm.life_table_mu(), pm.lambda_driver(data))
-print(res["metrics"]["mape"], res["k"].values)
-```
 
 ## Repository layout
 
@@ -197,17 +235,6 @@ print(res["metrics"]["mape"], res["k"].values)
 ## Methods
 
 Full description, equations and choices: [`docs/METHODS.md`](docs/METHODS.md).
-
-## Limitations
-
-- After 2036 (Tracks A, C) and throughout (Track B), states follow India's WPP shape; there is no state-level WPP series.
-- Census age-reporting patterns at the anchor years (e.g. under-count of young children, age heaping) carry into Tracks B and C.
-- Tracks B and C show growth changes of up to about 2.5 percentage points per year at 1991 and 2011, where the Census/WPP
-  correction moves from interpolation to extrapolation.
-- Single ages from M2 and M4 follow WPP India's pattern within each band, including its single-year cohort features (for example
-  around 1959–60 and the mid-2020s); these can appear in custom bands that cut across five-year bands.
-- State totals for 2012–2036 in Tracks A and C are used as provided by ICMR-NCDIR.
-- Female population only.
 
 ## Previous version
 
