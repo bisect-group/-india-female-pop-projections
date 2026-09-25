@@ -70,7 +70,7 @@ def experiment_table():
 
 # ---- Data ------------------------------------------------------------------------------
 DEFAULT_VARIANT = {"A": "A1", "B": "B-taper", "C": "B-taper_hold_A1-blend"}
-DEFAULT_STATE_VARIANT = {"A": "A1", "B": "B-hold_hold", "C": "B-taper_hold_A1-blend"}
+DEFAULT_STATE_VARIANT = {"A": "A1", "B": "B-taper_hold", "C": "B-taper_hold_A1-blend"}
 
 
 def load_track(track, variant=None, unit="India", out_dir=None):

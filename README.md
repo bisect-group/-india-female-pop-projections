@@ -12,6 +12,8 @@ Use it in two ways:
 
 <p align="center"><img src="docs/figures/tracks_dashboard.png" width="900"></p>
 
+**Contents:** [Why this dataset](#why-this-dataset) · [Three tracks](#three-versions-tracks-of-the-data) · [Data files](#the-data-files) · [Population models](#population-models) · [Quick start](#quick-start) · [Repository layout](#repository-layout) · [Methods](#methods) · [Limitations](#limitations) · [Licence](#licence)
+
 ---
 
 ## Why this dataset
@@ -29,6 +31,8 @@ The ICMR-NCDIR file is written as *state total × a fixed age split*: its totals
 structure does not change over 25 years (30 series use a percentage table rounded to 0.1 %, 7 use their own Census 2011 split).
 Joining it to the Census produces a large jump in 2011→2012 (e.g. −18 % in 00–04, +71 % in 75+).
 
+<p align="center"><img src="docs/figures/transition_2011_2012.png" width="900"></p>
+
 <p align="center"><img src="docs/figures/icmr_ncdir_fixed_age_shares.png" width="820"></p>
 
 ## Three versions ("tracks") of the data
@@ -43,7 +47,8 @@ Joining it to the Census produces a large jump in 2011→2012 (e.g. −18 % in 0
   (growth fades smoothly into WPP's at 2012 and 2036).
 - **Track B** has three national variants: `B-hold`, `B-taper`, `B-smooth` (how the Census/WPP correction behaves outside
   1991–2011), and two state rules (`hold`, `drift-damped`).
-- **Track C** default: `B-taper` split × `A1-blend` totals.
+- **Defaults** used in the CSV files and the model notebooks: Track A `A1`, Track B `B-taper` (states: `B-taper` with the `hold` rule),
+  Track C `B-taper` split × `A1-blend` totals.
 
 <p align="center"><img src="docs/figures/tracks_scorecard.png" width="720"></p>
 
@@ -62,11 +67,11 @@ All populations are **absolute numbers of females**. Mid-year values.
 | File | Contents |
 |---|---|
 | `outputs/csv/india_female_population_by_age_1950_2100.csv` | India, all tracks and variants, long format |
-| `outputs/csv/states_female_population_by_age_1950_2100_track{A,B,C}.csv` | All 37 states/UTs, default variant of each track, long format |
+| `outputs/csv/states_female_population_by_age_1950_2100_track{A,B,C}.csv` | All 37 states/UTs, long format, default variant of each track: A = `A1`, B = `B-taper_hold`, C = `B-taper_hold_A1-blend` |
 | `outputs/trackA/trackA_india.xlsx` | India, one sheet per variant (A1, A1-blend, A2, A2-blend); wide (year × band + Total) |
 | `outputs/trackA/trackA_states_<variant>.parquet` | States, long format, per variant |
 | `outputs/trackB/trackB_india.xlsx` | India, one sheet per variant (B-hold, B-taper, B-smooth) |
-| `outputs/trackB/trackB_states_B-hold_<rule>.parquet` | States, long format, per state rule |
+| `outputs/trackB/trackB_states_<national>_<rule>.parquet` | States, long format, for every national variant (`B-hold`, `B-taper`, `B-smooth`) × state rule (`hold`, `drift-damped`) |
 | `outputs/trackB/census_anchors_harmonised.csv` | Census 1991/2001/2011 harmonised to today's 37 units |
 | `outputs/trackC/trackC_india_<tag>.xlsx`, `trackC_states_<tag>.parquet` | Track C, India and states |
 | `outputs/model/<track tag>/` | Population-model results: fit summary, errors by band, parameters (JSON), simulations |
@@ -112,11 +117,15 @@ notebook's results section for details.
 
 <p align="center"><img src="docs/figures/model_errors_trackB.png" width="880"></p>
 
+Example: experiment E5 on Track B (all 16 bands; dots = data, line = model).
+
+<p align="center"><img src="docs/figures/model_fit_trackB_E5.png" width="820"></p>
+
 ## Quick start
 
 ```bash
-git clone https://github.com/bisect-group/india-female-population-projections.git
-cd india-female-population-projections
+git clone https://github.com/bisect-group/-india-female-pop-projections.git
+cd -india-female-pop-projections
 pip install -r requirements.txt
 jupyter lab notebooks/
 ```
@@ -174,7 +183,7 @@ Full description, equations and choices: [`docs/METHODS.md`](docs/METHODS.md).
 ## Previous version
 
 The earlier pipeline (Census-interpolated series and custom age bands) is preserved at the tag
-[`v1-legacy`](https://github.com/bisect-group/india-female-population-projections/tree/v1-legacy).
+[`v1-legacy`](https://github.com/bisect-group/-india-female-pop-projections/tree/v1-legacy).
 
 ## Data sources and credits
 

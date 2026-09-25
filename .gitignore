@@ -11,7 +11,7 @@ dist/
 .ipynb_checkpoints/
 
 # Figures written by the notebooks (key figures for the README live in docs/figures/)
-figures/
+/figures/
 
 # OS
 .DS_Store
