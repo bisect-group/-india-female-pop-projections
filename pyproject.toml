@@ -5,11 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "india-female-population"
 version = "2.0.0"
-description = "Female population of India and its states by five-year age band, 1950-2100 (ICMR-NCDIR, Census, WPP), with age-structured population ODE models."
+description = "Female population of India and its states by five-year age band, 1950-2100 (ICMR-NCDIR, Census, WPP), single ages and custom age bands, and age-structured population ODE models."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24", "pandas>=2.0", "scipy>=1.10", "matplotlib>=3.7", "openpyxl>=3.1", "pyarrow>=14"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
-py-modules = ["popproj", "popmodel", "plotstyle"]
+py-modules = ["popproj", "popmodel", "popsingle", "plotstyle"]

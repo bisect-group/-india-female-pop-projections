@@ -79,7 +79,26 @@ $$P^C_{s,b}(t) = N^A_s(t)\,\frac{P^B_{s,b}(t)}{\sum_{b'}P^B_{s,b'}(t)}.$$
 Totals equal ICMR-NCDIR in 2012–2036 (and Track A outside it); the age split equals Track B's. Any all-ages ratio computed per
 head of population is therefore identical to one computed on ICMR-NCDIR, while age-specific populations follow the Census.
 
-## 7. Population model
+## 7. Single ages and custom age bands
+
+The 16 bands are split into single ages $a = 0,\dots,99$ and 100+, and any grouping is obtained by summing single ages. Every
+method reproduces each band total exactly, $\sum_{a\in b} P_a(t) = P_b(t)$; they differ in how a band's total is spread over its ages.
+
+| Method | Single ages within band $b$ |
+|---|---|
+| M1 uniform | $P_a = P_b / n_b$ ($n_b$ ages in the band; 75+ spread over 75 … 100+) |
+| M2 WPP proportions | $P_a = P_b\, W_a / \sum_{a'\in b} W_{a'}$ |
+| M3 cumulative spline | Monotone cubic (PCHIP) interpolation of the cumulative population through the band edges; $P_a$ = its differences |
+| M4 WPP-guided smooth | $P_a = W_a\,\rho(a)$ with $\rho(a) = \sum_j v_j B_j(a)$, continuous piecewise-linear hat functions $B_j$ centred on the band mid-points (75+ at age 80), and $v$ solving $\sum_{a\in b} W_a\,\rho(a) = P_b$ for all 16 bands |
+
+$W_a(t)$ is WPP's single-age population in the same year. States use India's WPP single-age shape.
+
+**Diagnostics.** (i) Benchmark: WPP single ages are grouped into bands and split back, with WPP's shape taken from year $t+\Delta$
+($\Delta = 0, \pm10, \pm20$) to mimic an imperfect shape. (ii) Band-edge steps: with $g(a)=\ln(P_{a+1}/P_a)$, the mean of
+$|g(a)-\tfrac12(g(a-1)+g(a+1))|$ at band edges vs inside bands. (iii) One-year cohort test: $P_{a+1}(t+1)/P_a(t) \le 1$ without
+migration. (iv) Custom bands over time: largest year-to-year change in annual growth, compared with the original 16 bands.
+
+## 8. Population model
 
 $$\frac{dP_1}{dt} = \Lambda(t) - (k_1+\mu_1)P_1,\quad
 \frac{dP_i}{dt} = k_{i-1}P_{i-1} - (k_i+\mu_i)P_i\ (i=2..15),\quad
